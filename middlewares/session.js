@@ -2,7 +2,7 @@
 const session = require('express-session')
 const config = require('../config/config');
 
-let middleware = function(redisStore) {
+let middleware = function (redisStore) {
 
     let session_config = {
         host: config.redisConfig.host,

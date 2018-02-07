@@ -40,7 +40,6 @@ function runRouter(root, routers) {
     fs.readdirSync(routers).forEach(function (fileName) {
         let filePath = routers + '/' + fileName;
         let rname = fileName.substr(0, fileName.lastIndexOf("."));
-        //console.log(1,rname,2, fileName,3, filePath)
         if (!fs.lstatSync(filePath).isDirectory()) {
             if (rname === 'index') {
                 app.use(root + '/', require(filePath));
@@ -70,5 +69,6 @@ process.on('uncatchException', (err) => {
 
 //监听8088端口
 app.listen(8088, function () {
-  console.log('server start in port 80888');
+    logger.info(`server start in port 8088`)
+    console.log('server start in port 8088');
 });

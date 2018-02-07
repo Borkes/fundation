@@ -33,7 +33,7 @@ router.post('/login', (req, res) => {
 })
 
 //注册,应该还有其他考虑,注册帐号频率,ip频率
-router.post('/register',  (req, res) => {
+router.post('/register', (req, res) => {
     let name = req.body.name;
     let password = req.body.password; //加密
     if (!name || !password) {
