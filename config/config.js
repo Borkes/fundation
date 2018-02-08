@@ -4,7 +4,7 @@ const localhostRedisConfig = {
     host: '127.0.0.1',
     port: 6379,
     opt: {
-        auth_pass: 123456
+        //auth_pass: 123456
     }
 }
 const developmentRedisConfig = {}
@@ -16,7 +16,7 @@ const localhostDbConfig = {
     port: 3306,
     user: 'root',
     password: '123456',
-    database: 'myblog',
+    database: 'mhq',
     connectTimeout: 5000,
     connectionLimit: 5,
     waitForConnctions: true

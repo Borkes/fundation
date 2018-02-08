@@ -1,13 +1,16 @@
 const path = require('path');
-const fs = require('fs')
 const express = require('express');
-const logger = require('./lib/logger');
 const session = require('express-session');
 const redisStore = require('connect-redis')(session);
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const _ = require('lodash');
 const middle = require('./middlewares')
+const logger = require('./lib/logger');
+const glob = require("glob");
 const app = express();
+router = new express.Router();
+app.use(router);
 
 global.DB = require('./util/db');
 
@@ -29,40 +32,29 @@ app.use(bodyParser.urlencoded({ extended: true })); //for parsing application/x-
 // session 中间件
 app.use(middle.session(redisStore));
 
-//路由前的处理
-app.use('/', (req, res, next) => {
 
+glob.sync('routes/*.js').forEach(file => {
+    app.use('/', require(path.resolve(file)));
 })
-
-// 自动路由
-const routers = app.get('routes');
-function runRouter(root, routers) {
-    fs.readdirSync(routers).forEach(function (fileName) {
-        let filePath = routers + '/' + fileName;
-        let rname = fileName.substr(0, fileName.lastIndexOf("."));
-        if (!fs.lstatSync(filePath).isDirectory()) {
-            if (rname === 'index') {
-                app.use(root + '/', require(filePath));
-            }
-            app.use(root + '/' + rname, require(filePath));
-        } else {
-            let path = root + '/' + fileName;
-            runRouter(path, filePath);
-        }
-    })
-}
-runRouter('', routers);
 
 //错误传递下来未处理
 app.use(function (err, req, res, next) {
-    var err = new Error('Not Found');
-    err.status = 404;
-    logger.error(req.url + '\n' + err.stack);
-    return res.send(err.message)
+    var new_err = new Error('系统繁忙');
+    new_err.status = 404;
+    console.log(err);
+    logger.error(req.url + '\n' + (err || {}).stack);
+    return res.send(new_err.message)
 })
 
 //监听未捕获错误
 process.on('uncatchException', (err) => {
+    console.log(err);
+    logger.error(`Caught exception: ${err.stack}`);
+})
+
+//统一处理async/await中抛出的错误
+//不是很好的方式，比起在每个路由总try catch要简洁
+process.on('unhandledRejection', (err) => {
     console.log(err);
     logger.error(`Caught exception: ${err.stack}`);
 })
