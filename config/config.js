@@ -4,7 +4,8 @@ const localhostRedisConfig = {
     host: '127.0.0.1',
     port: 6379,
     opt: {
-        //auth_pass: 123456
+        passwd: 123456,
+        auth_pass: 123456
     }
 }
 const developmentRedisConfig = {}

@@ -1,65 +1,189 @@
+const express = require('express');
+const router = express.Router();
 
 const userAct = require('../models/user');
+const tools = require('../lib/tools');
+const middlewares = require('../middlewares')
 
-//自动路由
-var express = require('express');
-var router = express.Router();
+const checkCode = async function (req, res, phone, code) {
+    const key = 'sms_last_send_cont:#' + phone;
+    const str = await REDIS.getAsync(key);
+    if (str) {
+        let [rdsCode, rdsPhone, errorCount, time] = str.split('|');
 
-router.get('/', function (req, res) {
-    res.redirect('/login');
+        if (time && new Date().getTime() - time > 600 * 1000) {
+            res.status(400).json('短信验证码已过期');
+            return false;
+        }
+
+        if (rdsPhone && rdsPhone != phone) {
+            res.status(400).json('手机号和接收号码不一致');
+            return false;
+        }
+
+        if (rdsCode && rdsCode != code) {
+            errorCount++;
+            await (REDIS.setAsync(key, rdsCode + '|' + rdsPhone + '|' + errorCount + '|' + time));
+            res.status(400).json('验证码错误');
+            return false;
+        }
+
+        await (REDIS.setAsync(key, '-1|' + rdsPhone + '|' + errorCount + '|' + time));
+        return true;
+    } else {
+        res.status(400).json('尚未获取短信验证码');
+        return false;
+    }
+};
+
+//检查输入手机号是否存在
+router.get('/check-phone', async (req, res, next) => {
+    let phone = req.query.phone;
+    let type = +req.query.type || 0; //0个人 1机构
+    let result;
+    try {
+        result = await userAct.existAccount(phone, type);
+        return res.send({ code: 0, msg: result });
+    } catch (e) {
+        return next(e);
+    }
+})
+
+//退出登录
+router.post('/login-out', async (req, res, next) => {
+    req.session.user = null;
+    return res.send({ code: 0, msg: 'ok' });
 })
 
 //登录
-router.post('/login', (req, res) => {
-    let name = req.body.name.trim();
-    let password = req.body.password.trim();
-    if (!name || !password) {
-        return res.send({ code: 1, message: '请输入帐号和密码' });
+router.post('/login', async (req, res, next) => {
+    let phone = req.body.phone;  //用户手机号
+    let password = req.body.password; //用户密码，前端加密
+    let type = +req.body.type || 0; //类型 0个人 1机构
+    if (!phone || !password) {
+        return res.send({ code: 1, msg: '请输入帐号和密码' });
     }
+    phone = phone.trim();
+    password = password.trim();
 
-    userAct.login(name).then((result) => {
-        if (result.length === 0) {
-            return res.send({ code: 0, message: '帐号未注册' });
-        } else if (result[0].password === password) {
-            return res.send({ code: 0, message: '登录成功' });
+    try {
+        let check = await checkLogin(phone, password, type);
+        if (check && check.length === 1) {
+            let user = {};
+            if (type === 0) {
+                user = {
+                    type,
+                    id: check[0].client_ID,
+                    telphone: check[0].telphone,
+                    pinyin_name: check[0].pinyin_name,
+                    chinese_name: check[0].chinese_name,
+                }
+            } else {
+                user = {
+                    type,
+                    id: check[0].sale_ID,
+                    telphone: check[0].telphone,
+                    pinyin_name: check[0].pinyin_name,
+                    chinese_name: check[0].chinese_name,
+                }
+            }
+            req.session.user = user;
+            return res.send({ code: 0, msg: user })
         } else {
-            return res.send({ code: 1, message: '密码错误' });
+            return res.send({ code: 2, msg: '账号或密码错误' })
         }
-    }).catch((err) => {
-        console.error('login error:', err);
-        res.send({ code: 1, message: '登录失败' });
-    })
-
+    } catch (e) {
+        return next(e);
+    }
 })
 
-//注册,应该还有其他考虑,注册帐号频率,ip频率
+//注册
 router.post('/register', (req, res) => {
-    let name = req.body.name;
+    let phone = req.body.phone;
     let password = req.body.password; //加密
-    if (!name || !password) {
+    let code = req.body.code;
+    let type = +req.body.type || 0; //0个人 1机构
+    if (!phone || !password || !code) {
         return res.send({ code: 2, message: '没有必要参数' })
     }
-    let info = { name, password };
-    userAct.existAccount(name).then((exist) => {
-        if (exist) {
-            return 1;
-        } else {
-            return userAct.register(info);
+    const result = await checkCode(req, res, phone, code);
+
+    if (result) {
+        let result = await userAct.existAccount(phone, type);
+        if (result) {
+            return res.send({ code: 1, msg: '已经注册过' });
         }
-    }).then((data) => {
-        if (data === 1) {
-            return res.send({ code: 0, message: '帐号已经被注册' });
-        } else {
-            return res.send({ code: 0, message: '注册成功' });
-        }
-    }).catch((err) => {
-        console.error('register error:', err);
-        return res.send({ code: 1, message: '注册失败' });
-    })
+        await userAct.register(phone, password, type);
+        return res.send({ code: 0, msg: 'ok' });
+    }
 })
 
-router.get('/products-list', (req, res) => {
-
+//产品列表
+router.get('/products-list', middlewares.check(), (req, res) => {
+    
+    res.send({ code: 0, msg: '' })
 })
+
+//发送短信
+router.get('/send-code', async (req, res) => {
+    const args = req.query;
+    const phone = args.phone; //手机号
+    const invite_code = args.code; //邀请码
+    const type = +args.type || 0; //类型0个人 1机构
+    const code_type = args.code_type; //发送短息验证码类型
+
+    if (!phone || !code_type) {
+        return res.send({ code: 1, msg: 'phone不能为空' });
+    }
+
+    //检测手机号：格式
+    const reg = /^1\d{10}$/;
+    if (!reg.test(phone)) {
+        return res.send({ code: 1, msg: '手机号码格式错误' });
+    }
+
+    //是否已注册
+    const phoneUsed = await userAct.existAccount(phone, type);
+    if (phoneUsed) {
+        return res.send({ code: 1, msg: '手机号码已经注册' });
+    }
+
+    //根据sms_last_send_cont判断上一次发送时间
+    const key = 'sms_last_send_cont:#' + phone;
+
+    let str = await REDIS.getAsync(key);
+    if (str) {
+        let [code, tel, errorCount, time] = str.split('|');
+        if (time && new Date().getTime() - time < 60 * 1000) {
+            return res.send({ code: 1, msg: '短信验证码已发送' });
+        }
+    }
+
+    //生成6位数字验证码
+    const rdmCode = tools.getRandomCode(6);
+    let content = '';
+    switch (code_type) {
+        case 1:
+            content = '您注册账户的验证码是：' + rdmCode + '，感谢您的支持！';
+            break;
+        case 2:
+            content = '您找回密码的验证码是：' + rdmCode + '';
+            break;
+    }
+
+    const result = await tools.sendAsync({ phone: phone, content: content })
+    if (result < 0) {
+        logger.error(`[${phone}]短信发送失败，错误码：${result}`);
+        return res.send({ code: 1, msg: '发送失败' });
+    }
+
+    //记录验证码到redis，1天过期时间
+    await (rds.setexAsync(key, 86400, rdmCode + '|' + phone + '|0|' + new Date().getTime()));
+    str = await (rds.getAsync(key));
+
+    return res.send({ code: 0, msg: 'ok' });
+})
+
+
 
 module.exports = router;

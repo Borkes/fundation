@@ -13,7 +13,7 @@ router = new express.Router();
 app.use(router);
 
 global.DB = require('./util/db');
-
+global.REDIS = require('./util/redis');
 app.use(cookieParser()); //使用cookie
 
 // 设置模板目录
@@ -43,7 +43,7 @@ app.use(function (err, req, res, next) {
     new_err.status = 404;
     console.log(err);
     logger.error(req.url + '\n' + (err || {}).stack);
-    return res.send(new_err.message)
+    return res.send({code: 1001, msg: new_err.message})
 })
 
 //监听未捕获错误
