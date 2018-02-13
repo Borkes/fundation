@@ -67,7 +67,7 @@ router.post('/login', async (req, res, next) => {
     password = password.trim();
 
     try {
-        let check = await checkLogin(phone, password, type);
+        let check = await userAct.checkLogin(phone, password, type);
         if (check && check.length === 1) {
             let user = {};
             if (type === 0) {
@@ -103,9 +103,11 @@ router.post('/register', (req, res) => {
     let password = req.body.password; //加密
     let code = req.body.code;
     let type = +req.body.type || 0; //0个人 1机构
+    let invite_code = req.body.invite_code; //邀请码
     if (!phone || !password || !code) {
         return res.send({ code: 2, message: '没有必要参数' })
     }
+    //检查验证码
     const result = await checkCode(req, res, phone, code);
 
     if (result) {
@@ -113,7 +115,7 @@ router.post('/register', (req, res) => {
         if (result) {
             return res.send({ code: 1, msg: '已经注册过' });
         }
-        await userAct.register(phone, password, type);
+        await userAct.register(phone, password, type, invite_code);
         return res.send({ code: 0, msg: 'ok' });
     }
 })
@@ -128,7 +130,6 @@ router.get('/products-list', middlewares.check(), (req, res) => {
 router.get('/send-code', async (req, res) => {
     const args = req.query;
     const phone = args.phone; //手机号
-    const invite_code = args.code; //邀请码
     const type = +args.type || 0; //类型0个人 1机构
     const code_type = args.code_type; //发送短息验证码类型
 

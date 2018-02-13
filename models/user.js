@@ -40,26 +40,17 @@ function checkLogin(phone, password, type) {
  * 注册用户
  * @param {object} info 
  */
-function register(phone, password, type) {
+function register(phone, password, type, invite_code = null) {
     let sqlStr = '';
     if (type === 0) {
-        sqlStr = 'INSERT INTO fw_clients (phone, password) VALUES(?,?)';
+        sqlStr = 'INSERT INTO fw_clients (phone, password, invitedBy_saleID) VALUES(?,?,?)';
     } else {
-        sqlStr = 'INSERT INTO fw_consultant (phone, password) VALUES(?,?)';
+        sqlStr = 'INSERT INTO fw_consultant (phone, password, invitedBy_clientID) VALUES(?,?,?)';
     }
-    let variable = [phone, password];
+    let variable = [phone, password, invite_code];
     return db(sqlStr, variable);
 }
 
-/**
- * 登录
- * @param {string} name 
- * @param {string} password 
- */
-function login(name) {
-    let sqlStr = 'SELECT password FROM register WHERE name = ?';
-    return db(sqlStr, [name]);
-}
 
 
 
@@ -67,6 +58,5 @@ function login(name) {
 module.exports = {
     register,
     existAccount,
-    existCompany,
-    login,
+    checkLogin,
 }
