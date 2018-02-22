@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const userAct = require('../models/user');
+const produceAct = require('../models/product');
 const tools = require('../lib/tools');
 const middlewares = require('../middlewares')
 
@@ -98,7 +99,7 @@ router.post('/login', async (req, res, next) => {
 })
 
 //注册
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
     let phone = req.body.phone;
     let password = req.body.password; //加密
     let code = req.body.code;
@@ -121,9 +122,24 @@ router.post('/register', (req, res) => {
 })
 
 //产品列表
-router.get('/products-list', middlewares.check(), (req, res) => {
-    
-    res.send({ code: 0, msg: '' })
+router.get('/products-list', middlewares.check(), async (req, res) => {
+    const class_id = req.query.class_id; //类型id；
+    const sub_class_id = req.query.sub_class_id; //子类id
+    if (!class_id) {
+        return res.send({ code: 2, message: '没有必要参数' });
+    }
+    let data;
+    try {
+        if (sub_class_id) {
+            data = await produceAct.getProduct(class_id, sub_class_id);
+        } else {
+            data = await produceAct.getProductById(class_id);
+        }
+        res.send({ code: 0, message: data })
+    } catch (e) {
+        logger.error(`class_id=${class_id},sub_class_id=${sub_class_id},获取失败失败，错误：${e}`);
+        res.send({ code: 1001, message: '系统繁忙' })
+    }
 })
 
 //发送短信
