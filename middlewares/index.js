@@ -2,5 +2,5 @@
 
 module.exports = {
     session: require('./session'),
-    check: require('./check'),
+    check: require('./check').checkLogin,
 }

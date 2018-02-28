@@ -9,8 +9,6 @@ const middle = require('./middlewares')
 const logger = require('./lib/logger');
 const glob = require("glob");
 const app = express();
-router = new express.Router();
-app.use(router);
 
 global.DB = require('./util/db');
 global.REDIS = require('./util/redis');
