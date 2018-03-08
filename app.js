@@ -25,7 +25,7 @@ for (let method of methods) {
             }
             const handle = function (...data) {
                 const [req, res, next] = data;
-                item(req, res, next).then(next).catch(next);
+                item(req, res, next).then().catch(next);
             };
             params.push(handle);
         }
