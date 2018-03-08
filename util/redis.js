@@ -6,7 +6,7 @@ bluebird.promisifyAll(redis.Multi.prototype);
 
 const conf = require('../config/config.js');
 redis.createClient(conf.redisConfig.port, conf.redisConfig.host, {
-    auth_pass: conf.redisConfig.passwd, password: conf.redisConfig.passwd
+    auth_pass: conf.redisConfig.opt.passwd, password: conf.redisConfig.opt.passwd
 });
 
 module.exports = redis;
