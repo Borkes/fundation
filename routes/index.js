@@ -1,5 +1,3 @@
-const express = require('express');
-const router = express.Router();
 
 const userAct = require('../models/user');
 const produceAct = require('../models/product');
@@ -42,12 +40,13 @@ router.get('/check-phone', async (req, res, next) => {
     let phone = req.query.phone;
     let type = +req.query.type || 0; //0个人 1机构
     let result;
-    try {
-        result = await userAct.existAccount(phone, type);
+    //try {
+        console.log(111)
+        result = await userAct.existAccoun(phone, type);
         return res.send({ code: 0, msg: result });
-    } catch (e) {
-        return next(e);
-    }
+    //} catch (e) {
+    //    return next(e);
+    //}
 })
 
 //退出登录
@@ -200,7 +199,3 @@ router.get('/send-code', async (req, res) => {
 
     return res.send({ code: 0, msg: 'ok' });
 })
-
-
-
-module.exports = router;
