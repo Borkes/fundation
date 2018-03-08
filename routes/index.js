@@ -40,13 +40,8 @@ router.get('/check-phone', async (req, res, next) => {
     let phone = req.query.phone;
     let type = +req.query.type || 0; //0个人 1机构
     let result;
-    //try {
-        console.log(111)
-        result = await userAct.existAccoun(phone, type);
-        return res.send({ code: 0, msg: result });
-    //} catch (e) {
-    //    return next(e);
-    //}
+    result = await userAct.existAccount(phone, type);
+    return res.send({ code: 0, msg: result });
 })
 
 //退出登录
@@ -66,34 +61,30 @@ router.post('/login', async (req, res, next) => {
     phone = phone.trim();
     password = password.trim();
 
-    try {
-        let check = await userAct.checkLogin(phone, password, type);
-        if (check && check.length === 1) {
-            let user = {};
-            if (type === 0) {
-                user = {
-                    type,
-                    id: check[0].client_ID,
-                    telphone: check[0].telphone,
-                    pinyin_name: check[0].pinyin_name,
-                    chinese_name: check[0].chinese_name,
-                }
-            } else {
-                user = {
-                    type,
-                    id: check[0].sale_ID,
-                    telphone: check[0].telphone,
-                    pinyin_name: check[0].pinyin_name,
-                    chinese_name: check[0].chinese_name,
-                }
+    let check = await userAct.checkLogin(phone, password, type);
+    if (check && check.length === 1) {
+        let user = {};
+        if (type === 0) {
+            user = {
+                type,
+                id: check[0].client_ID,
+                telphone: check[0].telphone,
+                pinyin_name: check[0].pinyin_name,
+                chinese_name: check[0].chinese_name,
             }
-            req.session.user = user;
-            return res.send({ code: 0, msg: user })
         } else {
-            return res.send({ code: 2, msg: '账号或密码错误' })
+            user = {
+                type,
+                id: check[0].sale_ID,
+                telphone: check[0].telphone,
+                pinyin_name: check[0].pinyin_name,
+                chinese_name: check[0].chinese_name,
+            }
         }
-    } catch (e) {
-        return next(e);
+        req.session.user = user;
+        return res.send({ code: 0, msg: user })
+    } else {
+        return res.send({ code: 2, msg: '账号或密码错误' })
     }
 })
 
@@ -128,17 +119,13 @@ router.get('/products-list', middlewares.check(), async (req, res) => {
         return res.send({ code: 2, message: '没有必要参数' });
     }
     let data;
-    try {
-        if (sub_class_id) {
-            data = await produceAct.getProduct(class_id, sub_class_id);
-        } else {
-            data = await produceAct.getProductById(class_id);
-        }
-        res.send({ code: 0, message: data })
-    } catch (e) {
-        logger.error(`class_id=${class_id},sub_class_id=${sub_class_id},获取失败失败，错误：${e}`);
-        res.send({ code: 1001, message: '系统繁忙' })
+    if (sub_class_id) {
+        data = await produceAct.getProduct(class_id, sub_class_id);
+    } else {
+        data = await produceAct.getProductById(class_id);
     }
+    res.send({ code: 0, message: data })
+
 })
 
 //发送短信

@@ -33,7 +33,7 @@ for (let method of methods) {
         return router
     };
 }
-global.router = router;
+global.router = router;//全局路由，统一处理错误
 
 app.use(cookieParser()); //使用cookie
 // 设置模板目录
