@@ -30,6 +30,7 @@ for (let method of methods) {
             params.push(handle);
         }
         app[method](...params);
+        return router
     };
 }
 global.router = router;
