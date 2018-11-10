@@ -19,15 +19,15 @@ for (let method of methods) {
         if (method === 'get' && data.length === 1) return app.set(data[0]);
         const params = [];
         for (let item of data) {
-            if (Object.prototype.toString.call(item) !== '[object AsyncFunction]') {
+            if (Object.prototype.toString.call(item) === '[object AsyncFunction]') {
+                const handle = function (...data) {
+                    const [req, res, next] = data;
+                    item(req, res, next).catch(next);
+                };
+                params.push(handle);
+            } else {
                 params.push(item);
-                continue;
             }
-            const handle = function (...data) {
-                const [req, res, next] = data;
-                item(req, res, next).then().catch(next);
-            };
-            params.push(handle);
         }
         app[method](...params);
         return router

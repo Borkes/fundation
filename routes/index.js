@@ -36,7 +36,7 @@ const checkCode = async function (req, res, phone, code) {
 };
 
 //检查输入手机号是否存在
-router.get('/check-phone', async (req, res, next) => {
+router.get('/check-phone', middlewares.logUrl(), async (req, res, next) => {
     let phone = req.query.phone;
     let type = +req.query.type || 0; //0个人 1机构
     let result;
@@ -45,13 +45,13 @@ router.get('/check-phone', async (req, res, next) => {
 })
 
 //退出登录
-router.post('/login-out', async (req, res, next) => {
+router.post('/login-out', middlewares.logUrl(), async (req, res, next) => {
     req.session.user = null;
     return res.send({ code: 0, msg: 'ok' });
 })
 
 //登录
-router.post('/login', async (req, res, next) => {
+router.post('/login', middlewares.logUrl(), async (req, res, next) => {
     let phone = req.body.phone;  //用户手机号
     let password = req.body.password; //用户密码，前端加密
     let type = +req.body.type || 0; //类型 0个人 1机构
@@ -89,7 +89,7 @@ router.post('/login', async (req, res, next) => {
 })
 
 //注册
-router.post('/register', async (req, res) => {
+router.post('/register', middlewares.logUrl(), async (req, res) => {
     let phone = req.body.phone;
     let password = req.body.password; //加密
     let code = req.body.code;
@@ -112,7 +112,7 @@ router.post('/register', async (req, res) => {
 })
 
 //产品列表
-router.get('/products-list', middlewares.check(), async (req, res) => {
+router.get('/products-list', middlewares.logUrl(), middlewares.check(), async (req, res) => {
     const class_id = req.query.class_id; //类型id；
     const sub_class_id = req.query.sub_class_id; //子类id
     if (!class_id) {
@@ -129,7 +129,7 @@ router.get('/products-list', middlewares.check(), async (req, res) => {
 })
 
 //发送短信
-router.get('/send-code', async (req, res) => {
+router.get('/send-code', middlewares.logUrl(), async (req, res) => {
     const args = req.query;
     const phone = args.phone; //手机号
     const type = +args.type || 0; //类型0个人 1机构
